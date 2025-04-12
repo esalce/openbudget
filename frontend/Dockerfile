@@ -2,15 +2,12 @@ FROM node:18-alpine
 
 WORKDIR /app
 
-# Install dependencies
-COPY package.json package-lock.json* ./
-RUN npm ci
-
-# Copy app files
+# Install pnpm and dependencies
 COPY . .
+RUN npm install -g pnpm && pnpm install
 
-# Expose the port
+# Expose Vite dev server port
 EXPOSE 5173
 
-# Start development server
-CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0"]
+# Start Vite dev server
+CMD ["pnpm", "dev", "--host", "0.0.0.0"]

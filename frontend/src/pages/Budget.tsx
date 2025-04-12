@@ -1,145 +1,85 @@
-import React, { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
-import { mockBudgetService, formatCurrency, Budget, CategoryGroup } from '../services/mockData';
+// src/pages/Budget.tsx
+import React, { useEffect } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
+import { useBudgets } from '../contexts/BudgetContext';
+import { CategoryProvider } from '../contexts/CategoryContext';
+import BudgetEditor from '../components/budget/budgetEditor';
 
-const BudgetPage: React.FC = () => {
-  const { budgetId = '1' } = useParams(); // Default to first budget if no ID provided
-  const [budget, setBudget] = useState<Budget | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  
+const Budget: React.FC = () => {
+  const { budgetId } = useParams<{ budgetId?: string }>();
+  const { budgets, selectedBudgetId, selectBudget } = useBudgets();
+  const navigate = useNavigate();
+
+  // Handle initial load and redirection
   useEffect(() => {
-    const fetchBudget = async () => {
-      try {
-        setLoading(true);
-        const data = await mockBudgetService.getBudgetById(budgetId);
-        if (data) {
-          setBudget(data);
-        } else {
-          setError('Budget not found');
-        }
-      } catch (err) {
-        setError('Failed to load budget');
-        console.error(err);
-      } finally {
-        setLoading(false);
-      }
-    };
-    
-    fetchBudget();
-  }, [budgetId]);
-  
-  if (loading) {
-    return (
-      <div className="flex justify-center items-center h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
-      </div>
-    );
-  }
-  
-  if (error || !budget) {
-    return (
-      <div className="flex justify-center items-center h-screen">
-        <div className="text-red-500 text-xl">{error || 'Unable to load budget'}</div>
-      </div>
-    );
-  }
-  
-  // Calculate totals
-  const budgeted = budget.categoryGroups.reduce((total, group) => 
-    total + group.categories.reduce((groupTotal, category) => 
-      groupTotal + category.monthlyTargetAmount, 0), 0);
-  
-  const activity = budget.categoryGroups.reduce((total, group) => 
-    total + group.categories.reduce((groupTotal, category) => 
-      groupTotal + category.activity, 0), 0);
-  
-  const available = budget.categoryGroups.reduce((total, group) => 
-    total + group.categories.reduce((groupTotal, category) => 
-      groupTotal + category.availableBalance, 0), 0);
-  
-  return (
-    <div className="container mx-auto px-4 py-8">
-      <header className="mb-8">
-        <h1 className="text-3xl font-bold">{budget.name}</h1>
-        <p className="text-gray-600">Budget for November 2023</p>
-      </header>
-      
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-        <div className="bg-white p-4 rounded shadow">
-          <h2 className="text-lg font-semibold text-gray-700">Budgeted</h2>
-          <p className="text-2xl font-bold text-blue-600">{formatCurrency(budgeted, budget.currency)}</p>
-        </div>
-        <div className="bg-white p-4 rounded shadow">
-          <h2 className="text-lg font-semibold text-gray-700">Activity</h2>
-          <p className="text-2xl font-bold text-red-600">{formatCurrency(activity, budget.currency)}</p>
-        </div>
-        <div className="bg-white p-4 rounded shadow">
-          <h2 className="text-lg font-semibold text-gray-700">Available</h2>
-          <p className="text-2xl font-bold text-green-600">{formatCurrency(available, budget.currency)}</p>
-        </div>
-      </div>
-      
-      <div className="space-y-6">
-        {budget.categoryGroups.map((group) => (
-          <CategoryGroupComponent key={group.id} group={group} currency={budget.currency} />
-        ))}
-      </div>
-    </div>
-  );
-};
+    // If we have a budget ID in the URL, select it
+    if (budgetId) {
+      selectBudget(budgetId);
+    } 
+    // If we have a selected budget but no budget ID in the URL, update the URL
+    else if (selectedBudgetId) {
+      navigate(`/budget/${selectedBudgetId}`, { replace: true });
+    }
+    // If no budget is selected and we have budgets, select the first one
+    else if (budgets.length > 0) {
+      navigate(`/budget/${budgets[0].id}`, { replace: true });
+    }
+  }, [budgetId, selectedBudgetId, budgets, navigate, selectBudget]);
 
-interface CategoryGroupProps {
-  group: CategoryGroup;
-  currency: string;
-}
+  // Handle budget selection change
+  const handleBudgetChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const newBudgetId = e.target.value;
+    navigate(`/budget/${newBudgetId}`);
+  };
 
-const CategoryGroupComponent: React.FC<CategoryGroupProps> = ({ group, currency }) => {
-  // Calculate group totals
-  const groupBudgeted = group.categories.reduce((total, category) => total + category.monthlyTargetAmount, 0);
-  const groupActivity = group.categories.reduce((total, category) => total + category.activity, 0);
-  const groupAvailable = group.categories.reduce((total, category) => total + category.availableBalance, 0);
-  
+  // Find the selected budget
+  const selectedBudget = budgets.find(budget => budget.id === (budgetId || selectedBudgetId));
+
   return (
-    <div className="bg-white rounded-lg shadow overflow-hidden">
-      <div className="bg-gray-100 p-4 flex justify-between items-center">
-        <h3 className="text-lg font-semibold">{group.name}</h3>
-        <div className="flex space-x-4">
-          <span className="text-blue-600 font-medium">{formatCurrency(groupBudgeted, currency)}</span>
-          <span className="text-red-600 font-medium">{formatCurrency(groupActivity, currency)}</span>
-          <span className="text-green-600 font-medium">{formatCurrency(groupAvailable, currency)}</span>
-        </div>
-      </div>
-      
-      <div className="divide-y divide-gray-200">
-        {group.categories.map((category) => (
-          <div key={category.id} className="p-4 flex justify-between items-center hover:bg-gray-50">
-            <div>
-              <h4 className="font-medium">{category.name}</h4>
-              {category.monthlyTargetAmount > 0 && (
-                <p className="text-xs text-gray-500">Target: {formatCurrency(category.monthlyTargetAmount, currency)}</p>
-              )}
-            </div>
-            <div className="flex space-x-8">
-              <div className="w-24 text-right">
-                <span className="text-blue-600">{formatCurrency(category.monthlyTargetAmount, currency)}</span>
-              </div>
-              <div className="w-24 text-right">
-                <span className={`${category.activity < 0 ? 'text-red-600' : 'text-green-600'}`}>
-                  {formatCurrency(category.activity, currency)}
-                </span>
-              </div>
-              <div className="w-24 text-right">
-                <span className={`${category.availableBalance < 0 ? 'text-red-600' : 'text-green-600'} font-medium`}>
-                  {formatCurrency(category.availableBalance, currency)}
-                </span>
-              </div>
-            </div>
+    <div className="space-y-6">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <h1 className="text-2xl font-semibold text-gray-800">Budget</h1>
+        
+        {budgets.length > 0 ? (
+          <div className="w-full sm:w-64">
+            <label htmlFor="budget-selector" className="sr-only">Select Budget</label>
+            <select
+              id="budget-selector"
+              value={budgetId || selectedBudgetId || ''}
+              onChange={handleBudgetChange}
+              className="block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md"
+            >
+              <option value="" disabled>Select a budget</option>
+              {budgets.map(budget => (
+                <option key={budget.id} value={budget.id}>
+                  {budget.name}
+                </option>
+              ))}
+            </select>
           </div>
-        ))}
+        ) : null}
       </div>
+
+      {!selectedBudget ? (
+        <div className="bg-white rounded-lg shadow-md p-8 text-center">
+          {budgets.length > 0 ? (
+            <p className="text-gray-600">Please select a budget to view details.</p>
+          ) : (
+            <div className="space-y-4">
+              <p className="text-gray-600">You don't have any budgets yet.</p>
+              <p className="text-gray-600">
+                Go to the Dashboard to create your first budget.
+              </p>
+            </div>
+          )}
+        </div>
+      ) : (
+        <CategoryProvider>
+          <BudgetEditor />
+        </CategoryProvider>
+      )}
     </div>
   );
 };
 
-export default BudgetPage;
+export default Budget;
