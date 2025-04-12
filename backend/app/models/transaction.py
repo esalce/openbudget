@@ -48,7 +48,8 @@ class Transaction(Base, TimestampMixin):
     )
     
     # Relationships
-    budget: Mapped["Budget"] = relationship("Budget", back_populates="transactions")
+    budget: Mapped["Budgemy
+    et"] = relationship("Budget", back_populates="transactions")
     category: Mapped[Optional["Category"]] = relationship("Category", back_populates="transactions")
     transfer_transaction: Mapped[Optional["Transaction"]] = relationship(
         "Transaction", 

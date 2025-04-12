@@ -1,0 +1,51 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    volumes:
+      - ./backend:/app
+      - backend-venv:/app/.venv
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URI=sqlite:///./app.db
+      - BACKEND_CORS_ORIGINS=["http://localhost:5173"]
+    command: >
+      sh -c "
+        if [ ! -d .venv ]; then
+          python -m venv .venv && 
+          . .venv/bin/activate && 
+          pip install -e .;
+        fi && 
+        . .venv/bin/activate && 
+        uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"
+    networks:
+      - openbudget-network
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    volumes:
+      - ./frontend:/app
+      - frontend-node-modules:/app/node_modules
+    ports:
+      - "5173:5173"
+    environment:
+      - VITE_API_URL=http://localhost:8000
+    command: npm run dev
+    networks:
+      - openbudget-network
+    depends_on:
+      - backend
+
+networks:
+  openbudget-network:
+    driver: bridge
+
+volumes:
+  backend-venv:
+  frontend-node-modules:
