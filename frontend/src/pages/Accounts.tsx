@@ -1,7 +1,8 @@
-// src/pages/Accounts.tsx
+// src/pages/Accounts.tsx - Updated version
 import React from 'react';
 import { useParams } from 'react-router-dom';
 import { useAccounts } from '../contexts/AccountContext';
+import AccountTransactionsView from '../components/accounts/AccountTransactionsView';
 
 const Accounts: React.FC = () => {
   const { accountId } = useParams<{ accountId?: string }>();
@@ -43,49 +44,7 @@ const Accounts: React.FC = () => {
 
     return (
       <div className="p-8">
-        <div className="mb-6">
-          <h1 className="text-2xl font-semibold text-gray-800">{account.name}</h1>
-          <div className="flex items-center mt-1">
-            <span className="text-gray-500 mr-2">Current Balance:</span>
-            <span className={`font-medium text-xl ${account.balance < 0 ? 'text-red-600' : 'text-green-600'}`}>
-              {formatCurrency(account.balance)}
-            </span>
-          </div>
-        </div>
-
-        {/* Transactions Panel */}
-        <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-          <div className="flex justify-between items-center mb-8">
-            <h2 className="text-xl font-medium text-gray-800">Transactions</h2>
-            <button className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700">
-              Add Transaction
-            </button>
-          </div>
-          
-          <div className="text-center py-12 text-gray-500">
-            <p className="mb-1 text-lg font-medium">No transactions yet</p>
-            <p className="text-sm">Transactions for this account will appear here</p>
-          </div>
-        </div>
-        
-        {/* Account Details Panel */}
-        <div className="bg-white rounded-lg shadow-md p-6">
-          <h2 className="text-xl font-medium text-gray-800 mb-6">Account Details</h2>
-          <div className="space-y-3">
-            <div className="grid grid-cols-2 gap-4 py-2 border-b border-gray-100">
-              <span className="text-gray-500">Account Type:</span>
-              <span className="capitalize font-medium">{account.type}</span>
-            </div>
-            <div className="grid grid-cols-2 gap-4 py-2 border-b border-gray-100">
-              <span className="text-gray-500">Account Group:</span>
-              <span className="capitalize font-medium">{account.group === 'budget' ? 'On Budget' : 'Tracking'}</span>
-            </div>
-            <div className="grid grid-cols-2 gap-4 py-2">
-              <span className="text-gray-500">Created:</span>
-              <span className="font-medium">{new Date(account.createdAt).toLocaleDateString()}</span>
-            </div>
-          </div>
-        </div>
+        <AccountTransactionsView account={account} />
       </div>
     );
   }

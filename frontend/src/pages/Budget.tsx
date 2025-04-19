@@ -3,7 +3,7 @@ import React, { useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useBudgets } from '../contexts/BudgetContext';
 import { CategoryProvider } from '../contexts/CategoryContext';
-import BudgetEditor from '../components/budget/budgetEditor';
+import BudgetEditor from '../components/budget/BudgetEditor';
 
 const Budget: React.FC = () => {
   const { budgetId } = useParams<{ budgetId?: string }>();

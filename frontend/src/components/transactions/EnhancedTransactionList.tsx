@@ -25,19 +25,14 @@ const EnhancedTransactionList: React.FC<EnhancedTransactionListProps> = ({
   const [selectedTransaction, setSelectedTransaction] = useState<Transaction | undefined>(undefined);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
-  const [isDeleting, setIsDeleting] = useState(false);
   
   // Handle initial data loading
   useEffect(() => {
     const loadTransactions = async () => {
-      try {
-        if (accountId) {
-          await fetchAccountTransactions(accountId);
-        } else {
-          await fetchTransactions();
-        }
-      } catch (err) {
-        console.error("Error loading transactions:", err);
+      if (accountId) {
+        await fetchAccountTransactions(accountId);
+      } else {
+        await fetchTransactions();
       }
     };
     
@@ -100,23 +95,13 @@ const EnhancedTransactionList: React.FC<EnhancedTransactionListProps> = ({
   const handleDelete = async (id: string) => {
     if (confirmDelete === id) {
       try {
-        setIsDeleting(true);
-        const success = await deleteTransaction(id);
-        if (!success) {
-          throw new Error("Failed to delete transaction");
-        }
+        await deleteTransaction(id);
         setConfirmDelete(null);
       } catch (error) {
         console.error('Error deleting transaction:', error);
-      } finally {
-        setIsDeleting(false);
       }
     } else {
       setConfirmDelete(id);
-      // Auto-reset confirmation after 5 seconds for better UX
-      setTimeout(() => {
-        setConfirmDelete(state => state === id ? null : state);
-      }, 5000);
     }
   };
   
@@ -126,27 +111,7 @@ const EnhancedTransactionList: React.FC<EnhancedTransactionListProps> = ({
     setIsModalOpen(true);
   };
   
-  // Handle modal close
-  const handleModalClose = () => {
-    setIsModalOpen(false);
-    setSelectedTransaction(undefined);
-  };
-  
-  // Handle successful transaction add/edit
-  const handleSuccess = async () => {
-    // Refresh the transactions after successful save
-    try {
-      if (accountId) {
-        await fetchAccountTransactions(accountId);
-      } else {
-        await fetchTransactions();
-      }
-    } catch (err) {
-      console.error("Error refreshing transactions:", err);
-    }
-  };
-  
-  if (isLoading && !isDeleting && filteredTransactions.length === 0) {
+  if (isLoading) {
     return (
       <div className="flex justify-center items-center p-6">
         <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
@@ -173,7 +138,6 @@ const EnhancedTransactionList: React.FC<EnhancedTransactionListProps> = ({
         <button
           onClick={handleAddTransaction}
           className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700"
-          disabled={isLoading}
         >
           Add Transaction
         </button>
@@ -257,26 +221,18 @@ const EnhancedTransactionList: React.FC<EnhancedTransactionListProps> = ({
                     <button 
                       onClick={() => handleEdit(transaction)}
                       className="text-blue-600 hover:text-blue-900 mr-3"
-                      disabled={isDeleting}
                     >
                       Edit
                     </button>
                     <button 
                       onClick={() => handleDelete(transaction.id)}
                       className={`${
-                        isDeleting && confirmDelete === transaction.id 
-                          ? 'text-gray-400 cursor-not-allowed'
-                          : confirmDelete === transaction.id 
+                        confirmDelete === transaction.id 
                           ? 'text-red-800 font-semibold' 
                           : 'text-red-600 hover:text-red-900'
                       }`}
-                      disabled={isDeleting}
                     >
-                      {isDeleting && confirmDelete === transaction.id 
-                        ? 'Deleting...' 
-                        : confirmDelete === transaction.id 
-                        ? 'Confirm' 
-                        : 'Delete'}
+                      {confirmDelete === transaction.id ? 'Confirm' : 'Delete'}
                     </button>
                   </td>
                 </tr>
@@ -286,13 +242,22 @@ const EnhancedTransactionList: React.FC<EnhancedTransactionListProps> = ({
         </div>
       )}
       
-      {/* Transaction Modal */}
       <TransactionModal
         isOpen={isModalOpen}
-        onClose={handleModalClose}
+        onClose={() => {
+          setIsModalOpen(false);
+          setSelectedTransaction(undefined);
+        }}
         transaction={selectedTransaction}
         accountId={accountId}
-        onSuccess={handleSuccess}
+        onSuccess={() => {
+          // Refresh the transactions after successful save
+          if (accountId) {
+            fetchAccountTransactions(accountId);
+          } else {
+            fetchTransactions();
+          }
+        }}
       />
     </div>
   );
