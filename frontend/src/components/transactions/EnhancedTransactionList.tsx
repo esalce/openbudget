@@ -135,12 +135,6 @@ const EnhancedTransactionList: React.FC<EnhancedTransactionListProps> = ({
             ? `Transactions for ${getAccountName(accountId)}` 
             : 'All Transactions'}
         </h2>
-        <button
-          onClick={handleAddTransaction}
-          className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700"
-        >
-          Add Transaction
-        </button>
       </div>
       
       {filteredTransactions.length === 0 ? (

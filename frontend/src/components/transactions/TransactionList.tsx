@@ -17,7 +17,7 @@ const EnhancedTransactionList: React.FC<EnhancedTransactionListProps> = ({
   showAccountColumn = true,
   limit
 }) => {
-  const { transactions, isLoading, error, fetchTransactions, fetchAccountTransactions, deleteTransaction } = useTransactions();
+  const { transactions, isLoading, error, refreshTransactions, deleteTransaction } = useTransactions();
   const { accounts } = useAccounts();
   const { categories, categoryGroups } = useCategories();
   
@@ -31,18 +31,14 @@ const EnhancedTransactionList: React.FC<EnhancedTransactionListProps> = ({
   useEffect(() => {
     const loadTransactions = async () => {
       try {
-        if (accountId) {
-          await fetchAccountTransactions(accountId);
-        } else {
-          await fetchTransactions();
-        }
+        await refreshTransactions();
       } catch (err) {
         console.error("Error loading transactions:", err);
       }
     };
     
     loadTransactions();
-  }, [accountId, fetchAccountTransactions, fetchTransactions]);
+  }, [accountId, refreshTransactions]);
   
   // Filter and sort transactions
   useEffect(() => {
@@ -74,7 +70,8 @@ const EnhancedTransactionList: React.FC<EnhancedTransactionListProps> = ({
   };
   
   // Get account name by ID
-  const getAccountName = (accountId: string): string => {
+  const getAccountName = (accountId?: string | null): string => {
+    if (!accountId) return 'Unknown Account';
     const account = accounts.find(a => a.id === accountId);
     return account ? account.name : 'Unknown Account';
   };
@@ -136,11 +133,7 @@ const EnhancedTransactionList: React.FC<EnhancedTransactionListProps> = ({
   const handleSuccess = async () => {
     // Refresh the transactions after successful save
     try {
-      if (accountId) {
-        await fetchAccountTransactions(accountId);
-      } else {
-        await fetchTransactions();
-      }
+      await refreshTransactions();
     } catch (err) {
       console.error("Error refreshing transactions:", err);
     }
@@ -175,7 +168,7 @@ const EnhancedTransactionList: React.FC<EnhancedTransactionListProps> = ({
           className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700"
           disabled={isLoading}
         >
-          Add Transaction
+          Add Test
         </button>
       </div>
       
@@ -236,7 +229,7 @@ const EnhancedTransactionList: React.FC<EnhancedTransactionListProps> = ({
                       (transaction.transactionType === TransactionType.INCOME ? 'Income' : 'Uncategorized')}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {transaction.notes || '-'}
+                    {transaction.memo || '-'}
                   </td>
                   <td className={`px-6 py-4 whitespace-nowrap text-sm font-medium text-right ${
                     transaction.amount > 0 ? 'text-green-600' : 'text-red-600'
@@ -290,8 +283,7 @@ const EnhancedTransactionList: React.FC<EnhancedTransactionListProps> = ({
       <TransactionModal
         isOpen={isModalOpen}
         onClose={handleModalClose}
-        transaction={selectedTransaction}
-        accountId={accountId}
+        transactionId={selectedTransaction?.id}
         onSuccess={handleSuccess}
       />
     </div>
